@@ -36,9 +36,7 @@ let intervalId;
 
 function timer() {
   clearInterval(intervalId);
-  const currentDate = new Date();
-  const userSelectedDate = new Date(calendar.value);
-  let ms = userSelectedDate - currentDate;
+  let ms = userSelectedDate.selectedDates[0] - new Date();
   updateTimerDisplay(ms);
 
   intervalId = setInterval(() => {
@@ -49,6 +47,7 @@ function timer() {
       showSuccessMessage('Success!');
       btn.disabled = true;
       calendar.disabled = true;
+      userSelectedDate.setDate(userSelectedDate.selectedDates[0]);
     }
 
     ms -= 1000;
