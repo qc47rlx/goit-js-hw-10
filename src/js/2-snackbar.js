@@ -1,42 +1,40 @@
-"use strict";
-
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.querySelector('form');
+const formEl = document.querySelector('.form');
 
-  if (form) {
-    form.addEventListener('submit', function (event) {
-      event.preventDefault();
+formEl.addEventListener('submit', event => {
+  event.preventDefault();
 
-      const delay = parseInt(this.elements.delay.value, 10);
-      const state = form.querySelector('input[name="state"]:checked').value;
+  const delay = event.currentTarget.elements.delay.value;
+  const state = event.currentTarget.elements.state.value;
 
-      const promise = new Promise((resolve, reject) => {
-        setTimeout(() => {
-          (state === 'fulfilled') ? resolve(delay) : reject(delay);
-        }, delay);
+  createPromise(delay, state)
+    .then(() => {
+      iziToast.success({
+        position: 'topRight',
+        message: `✅ Fulfilled promise in ${delay}ms`,
       });
-
-      promise.then(
-        delay => showSnackbar('Success', `✅ Fulfilled promise in ${delay}ms`, '#59A10D'),
-        delay => showSnackbar('Error', `❌ Rejected promise in ${delay}ms`, '#EF4040')
-      );
+    })
+    .catch(() => {
+      iziToast.error({
+        position: 'topRight',
+        message: `❌ Rejected promise in ${delay}ms`,
+      });
     });
-  }
 
-  function showSnackbar(title, message, backgroundColor) {
-    const toastOptions = {
-      title: title,
-      message: message,
-      backgroundColor: backgroundColor,
-    };
-
-    if (title === 'Success') {
-      iziToast.success(toastOptions);
-    } else if (title === 'Error') {
-      iziToast.error(toastOptions);
-    }
-  }
+  formEl.reset();
 });
+
+function createPromise(delay, state) {
+  const promise = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (state === 'fulfilled') {
+        resolve();
+      } else {
+        reject();
+      }
+    }, delay);
+  });
+  return promise;
+}
