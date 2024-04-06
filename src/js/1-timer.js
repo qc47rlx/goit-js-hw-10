@@ -1,12 +1,18 @@
-"use strict";
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.min.css";
-import iziToast from "izitoast";
-import "izitoast/dist/css/iziToast.min.css";
+const buttonEl = document.querySelector('[data-start]');
+const inputEl = document.querySelector('#datetime-picker');
+const spanDaysEl = document.querySelector('[data-days]');
+const spanHoursEl = document.querySelector('[data-hours]');
+const spanMinutesEl = document.querySelector('[data-minutes]');
+const spanSecondsEl = document.querySelector('[data-seconds]');
 
-const calendar = document.querySelector("input#datetime-picker");
-const btn = document.querySelector(".start-btn");
+buttonEl.setAttribute('disabled', '');
+let userSelectedDate = null;
+let intervalId = null;
 
 const options = {
   enableTime: true,
@@ -14,89 +20,60 @@ const options = {
   defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-    dateChoose(selectedDates);
+    const userData = selectedDates[0].getTime();
+    const data = Date.now();
+    if (userData > data) {
+      buttonEl.removeAttribute('disabled');
+      userSelectedDate = userData;
+    } else {
+      iziToast.error({
+        title: 'Error',
+        position: 'topRight',
+        message: 'Please choose a date in the future',
+      });
+      buttonEl.setAttribute('disabled', '');
+    }
   },
 };
 
-let userSelectedDate;
-
-function dateChoose(selectedDates) {
-  userSelectedDate = selectedDates[0];
-  if (userSelectedDate <= new Date()) {
-    btn.disabled = true;
-    calendar.disabled = true;
-    showErrorMessage("Error");
-  } else {
-    btn.disabled = false;
-    calendar.disabled = false;
-  }
-}
-
-let intervalId;
-
-function timer() {
-  clearInterval(intervalId);
-  let ms = userSelectedDate.selectedDates[0] - new Date();
-  updateTimerDisplay(ms);
-
-  intervalId = setInterval(() => {
-    updateTimerDisplay(ms);
-
-    if (ms <= 0) {
-      clearInterval(intervalId);
-      showSuccessMessage('Success!');
-      btn.disabled = true;
-      calendar.disabled = true;
-      userSelectedDate.setDate(userSelectedDate.selectedDates[0]);
-    }
-
-    ms -= 1000;
-  }, 1000);
-}
-
-function showSuccessMessage(message) {
-  iziToast.success({
-    title: 'Success',
-    message: message,
-  });
-}
-
-function showErrorMessage(message) {
-  iziToast.error({
-    title: 'Error',
-    message: message,
-  });
-}
-
-function updateElement(selector, value) {
-  document.querySelector(selector).textContent = value >= 0 ? addLeadingZero(value) : '00';
-}
-
-function updateTimerDisplay(ms) {
-  const { days, hours, minutes, seconds } = convertMs(ms);
-  updateElement("[data-days]", days);
-  updateElement("[data-hours]", hours);
-  updateElement("[data-minutes]", minutes);
-  updateElement("[data-seconds]", seconds);
-}
+flatpickr(inputEl, options);
 
 function convertMs(ms) {
+  // Number of milliseconds per unit of time
   const second = 1000;
   const minute = second * 60;
   const hour = minute * 60;
   const day = hour * 24;
 
+  // Remaining days
   const days = Math.floor(ms / day);
+  // Remaining hours
   const hours = Math.floor((ms % day) / hour);
+  // Remaining minutes
   const minutes = Math.floor(((ms % day) % hour) / minute);
+  // Remaining seconds
   const seconds = Math.floor((((ms % day) % hour) % minute) / second);
 
   return { days, hours, minutes, seconds };
 }
 
 function addLeadingZero(value) {
-  return value < 10 ? `0${value}` : value;
+  return value.toString().padStart(2, '0');
 }
 
-btn.addEventListener("click", timer);
-document.addEventListener('DOMContentLoaded', () => { btn.disabled = true; });
+buttonEl.addEventListener('click', () => {
+  buttonEl.setAttribute('disabled', '');
+  inputEl.setAttribute('disabled', '');
+
+  intervalId = setInterval(() => {
+    const diff = userSelectedDate - Date.now();
+    const { days, hours, minutes, seconds } = convertMs(diff);
+
+    spanDaysEl.textContent = addLeadingZero(days);
+    spanHoursEl.textContent = addLeadingZero(hours);
+    spanMinutesEl.textContent = addLeadingZero(minutes);
+    spanSecondsEl.textContent = addLeadingZero(seconds);
+
+    if (diff < 1000) clearInterval(intervalId);
+  }, 1000);
+});
